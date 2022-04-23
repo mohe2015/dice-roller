@@ -4,44 +4,18 @@ enum Direction {
     Up, Right, Down, Left
 }
 
-
-// Dice: Top Front
-enum State {
-    OneTwo,
-    OneThree,
-    OneFive,
-    OneFour,
-
-    TwoOne,
-    TwoFour,
-    TwoSix,
-    TwoThree,
-    
-    ThreeOne,
-    ThreeTwo,
-    ThreeSix,
-    ThreeFive,
-
-    FourOne,
-    FourFive,
-    FourSix,
-    FourTwo,
-
-    FiveOne,
-    FiveThree,
-    FiveSix,
-    FiveFour,
-
-    SixTwo,
-    SixFour,
-    SixFive,
-    SixThree
-}
-
-fn move_dice(pos_and_state: (u8, u8, State), direction: Direction) -> (u8, u8, State) {
+// x_position y_position top_dice_number front_dice_number
+fn move_dice(pos_and_state: (u8, u8, u8, u8), direction: Direction) -> (u8, u8, u8, u8) {
      match direction {
-        Direction::Up => (pos_and_state.0, pos_and_state.1-1, match pos_and_state.2 {
-            State::OneTwo => State::TwoSix,
+        Direction::Up => (pos_and_state.0, pos_and_state.1-1, pos_and_state.3, match pos_and_state.3 {
+           1 => 6,
+           2 => 5,
+           3 => 4,
+           4 => 3,
+           5 => 2,
+           6 => 1,
+           
+           /* State::OneTwo => State::TwoSix,
             State::OneThree => State::ThreeSix,
             State::OneFive => State::FiveSix,
             State::OneFour => State::FourSix,
@@ -65,11 +39,11 @@ fn move_dice(pos_and_state: (u8, u8, State), direction: Direction) -> (u8, u8, S
             State::FiveThree => State::ThreeTwo,
             State::FiveSix => State::SixTwo,
             State::FiveFour => State::FourTwo,
-            
+
             State::SixTwo => State::TwoOne,
             State::SixFour => State::FourOne,
             State::SixFive => State::FiveOne,
-            State::SixThree => State::ThreeOne,
+            State::SixThree => State::ThreeOne,*/
         }),
         Direction::Right => (pos_and_state.0+1, pos_and_state.1, match pos_and_state.2 {
             State::OneTwo => todo!(),
@@ -153,7 +127,7 @@ fn move_dice(pos_and_state: (u8, u8, State), direction: Direction) -> (u8, u8, S
 }
 
 fn main() {
-    let pos_and_state: (u8, u8, State) = (0,0, State::OneTwo);
+    let pos_and_state: (u8, u8, u8, u8) = (0,0, 1, 2);
 
 
     println!("Hello, world!");
