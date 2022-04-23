@@ -1,4 +1,7 @@
-use std::{collections::{HashSet, BinaryHeap, HashMap}, cmp::Ordering};
+use std::{
+    cmp::Ordering,
+    collections::{BinaryHeap, HashMap},
+};
 
 use crate::DieNumber::*;
 
@@ -33,56 +36,80 @@ struct Die {
 }
 
 // x_position y_position top_dice_number front_dice_number
-fn move_dice(x: u8, y: u8, die: Die, direction: Direction) -> (u8, u8, Die) {
+fn move_dice(x: u8, y: u8, die: Die, direction: Direction) -> Option<(u8, u8, Die)> {
     match direction {
-        Direction::Up => (
-            x,
-            y - 1,
-            Die {
-                front: die.bottom,
-                back: die.top,
-                top: die.front,
-                bottom: die.back,
-                left: die.left,
-                right: die.right,
-            },
-        ),
-        Direction::Right => (
-            x + 1,
-            y,
-            Die {
-                front: die.left,
-                back: die.right,
-                top: die.top,
-                bottom: die.bottom,
-                left: die.back,
-                right: die.front,
-            },
-        ),
-        Direction::Down => (
-            x,
-            y + 1,
-            Die {
-                front: die.top,
-                back: die.bottom,
-                top: die.back,
-                bottom: die.front,
-                left: die.left,
-                right: die.right,
-            },
-        ),
-        Direction::Left => (
-            x - 1,
-            y,
-            Die {
-                front: die.right,
-                back: die.left,
-                top: die.top,
-                bottom: die.bottom,
-                left: die.front,
-                right: die.back,
-            },
-        ),
+        Direction::Up => {
+            if y == 0 {
+                None
+            } else {
+                Some((
+                    x,
+                    y - 1,
+                    Die {
+                        front: die.bottom,
+                        back: die.top,
+                        top: die.front,
+                        bottom: die.back,
+                        left: die.left,
+                        right: die.right,
+                    },
+                ))
+            }
+        }
+        Direction::Right => {
+            if x == 7 {
+                None
+            } else {
+                Some((
+                    x + 1,
+                    y,
+                    Die {
+                        front: die.left,
+                        back: die.right,
+                        top: die.top,
+                        bottom: die.bottom,
+                        left: die.back,
+                        right: die.front,
+                    },
+                ))
+            }
+        }
+        Direction::Down => {
+            if y == 7 {
+                None
+            } else {
+                Some((
+                    x,
+                    y + 1,
+                    Die {
+                        front: die.top,
+                        back: die.bottom,
+                        top: die.back,
+                        bottom: die.front,
+                        left: die.left,
+                        right: die.right,
+                    },
+                ))
+            }
+        }
+        Direction::Left => {
+            if x == 0 {
+                None
+            } else {
+                Some((
+                    x - 1,
+                    y,
+                    Die {
+                        front: die.right,
+                        back: die.left,
+                        top: die.top,
+                        bottom: die.bottom,
+                        left: die.front,
+                        right: die.back,
+                    },
+                ))
+            }
+        }
     }
 }
 
@@ -102,7 +129,9 @@ impl Ord for State {
         // Notice that the we flip the ordering on costs.
         // In case of a tie we compare positions - this step is necessary
         // to make implementations of `PartialEq` and `Ord` consistent.
-        other.cost.cmp(&self.cost)
+        other
+            .cost
+            .cmp(&self.cost)
             .then_with(|| self.position.cmp(&other.position))
     }
 }
@@ -114,13 +143,7 @@ impl PartialOrd for State {
     }
 }
 
-// Each node is represented as a `usize`, for a shorter implementation.
-struct Edge {
-    node: usize,
-    cost: usize,
-}
-
-fn shortest_path(adj_list: &Vec<Vec<Edge>>, start: (u8, u8, Die), goal: (u8, u8, Die)) -> Option<usize> {
+fn shortest_path(start: (u8, u8, Die), goal: (u8, u8, Die)) -> Option<usize> {
     // dist[node] = current shortest distance from `start` to `node`
     let mut dist: HashMap<(u8, u8, Die), usize> = HashMap::new();
 
@@ -128,26 +151,43 @@ fn shortest_path(adj_list: &Vec<Vec<Edge>>, start: (u8, u8, Die), goal: (u8, u8,
 
     // We're at `start`, with a zero cost
     dist.insert(start, 0);
-    heap.push(State { cost: 0, position: start });
+    heap.push(State {
+        cost: 0,
+        position: start,
+    });
 
     // Examine the frontier with lower cost nodes first (min-heap)
     while let Some(State { cost, position }) = heap.pop() {
         // Alternatively we could have continued to find all shortest paths
-        if position == goal { return Some(cost); }
+        if position == goal {
+            return Some(cost);
+        }
 
         // Important as we may have already found a better way
-        if Ordering::Less == dist.get(&position).cmp(&Some(&cost)) { continue; }
+        if Ordering::Less == dist.get(&position).cmp(&Some(&cost)) {
+            continue;
+        }
 
         // For each node we can reach, see if we can find a way with
         // a lower cost going through this node
-        for edge in &adj_list[position] {
-            let next = State { cost: cost + edge.cost, position: edge.node };
+        for edge in [
+            Direction::Up,
+            Direction::Right,
+            Direction::Down,
+            Direction::Left,
+        ] {
+            if let Some(node) = move_dice(position.0, position.1, position.2, edge) {
+                let next = State {
+                    cost: cost + 1,
+                    position: node,
+                };
 
-            // If so, add it to the frontier and continue
-            if next.cost < *dist.get(&next.position).unwrap_or(&usize::MAX) {
-                heap.push(next);
-                // Relaxation, we have now found a better way
-                dist.insert(next.position, next.cost);
+                // If so, add it to the frontier and continue
+                if next.cost < *dist.get(&next.position).unwrap_or(&usize::MAX) {
+                    heap.push(next);
+                    // Relaxation, we have now found a better way
+                    dist.insert(next.position, next.cost);
+                }
             }
         }
     }
@@ -156,52 +196,7 @@ fn shortest_path(adj_list: &Vec<Vec<Edge>>, start: (u8, u8, Die), goal: (u8, u8,
     None
 }
 
-fn find_goal(already_tried: &mut HashSet<(u8, u8, Die)>, current: (u8, u8, Die), goal: (u8, u8, Die)) -> Option<Vec<Direction>> {
-    if already_tried.contains(&current) {
-        return None
-    }
-    if current == goal {
-        return Some(vec![])
-    }
-    already_tried.insert(current);
-    if current.0 > 0 {
-        let target: (u8, u8, Die) = move_dice(current.0, current.1, current.2, Direction::Left);
-        let path = find_goal(already_tried, target, goal);
-        if let Some(mut path) = path {
-            path.push(Direction::Left);
-            return Some(path)
-        }
-    }
-    if current.0 < 8 {
-        let target: (u8, u8, Die) = move_dice(current.0, current.1, current.2, Direction::Right);
-        let path = find_goal(already_tried, target, goal);
-        if let Some(mut path) = path {
-            path.push(Direction::Right);
-            return Some(path)
-        }
-    }
-    if current.1 > 0 {
-        let target: (u8, u8, Die) = move_dice(current.0, current.1, current.2, Direction::Up);
-        let path = find_goal(already_tried, target, goal);
-        if let Some(mut path) = path {
-            path.push(Direction::Up);
-            return Some(path)
-        }
-    }
-    if current.1 < 8 {
-        let target: (u8, u8, Die) = move_dice(current.0, current.1, current.2, Direction::Down);
-        let path = find_goal(already_tried, target, goal);
-        if let Some(mut path) = path {
-            path.push(Direction::Down);
-            return Some(path)
-        }
-    }
-    None
-}
-
 fn main() {
-    let mut already_tried: HashSet<(u8, u8, Die)> = HashSet::new();
-
     let current: (u8, u8, Die) = (
         0,
         0,
@@ -226,5 +221,5 @@ fn main() {
             right: Four,
         },
     );
-    println!("{:?}", find_goal(&mut already_tried, current, goal));
+    println!("{:?}", shortest_path(current, goal));
 }
