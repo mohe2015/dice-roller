@@ -7,7 +7,7 @@ use crate::DieNumber::*;
 
 // just store the full cube and then simulate the rotation
 
-#[derive(Debug)]
+#[derive(Debug, Eq, Hash)]
 enum Direction {
     Up,
     Right,
@@ -146,6 +146,7 @@ impl PartialOrd for State {
 fn shortest_path(start: (u8, u8, Die), goal: (u8, u8, Die)) -> Option<usize> {
     // dist[node] = current shortest distance from `start` to `node`
     let mut dist: HashMap<(u8, u8, Die), usize> = HashMap::new();
+    let mut prev: HashMap<(u8, u8, Die), Direction> = HashMap::new();
 
     let mut heap = BinaryHeap::new();
 
@@ -160,11 +161,15 @@ fn shortest_path(start: (u8, u8, Die), goal: (u8, u8, Die)) -> Option<usize> {
     while let Some(State { cost, position }) = heap.pop() {
         // Alternatively we could have continued to find all shortest paths
         if position == goal {
+            //prev.get(&position).
+            // based on reversing the direction we probably would be able to backtarck the path here
+
             return Some(cost);
+
         }
 
         // Important as we may have already found a better way
-        if Ordering::Less == dist.get(&position).cmp(&Some(&cost)) {
+        if cost > *dist.get(&position).unwrap_or(&usize::MAX) {
             continue;
         }
 
@@ -187,6 +192,8 @@ fn shortest_path(start: (u8, u8, Die), goal: (u8, u8, Die)) -> Option<usize> {
                     heap.push(next);
                     // Relaxation, we have now found a better way
                     dist.insert(next.position, next.cost);
+
+                    prev.insert(next, edge);
                 }
             }
         }
